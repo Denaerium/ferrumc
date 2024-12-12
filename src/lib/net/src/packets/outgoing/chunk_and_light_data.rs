@@ -7,7 +7,7 @@ use ferrumc_net_codec::net_types::var_int::VarInt;
 use ferrumc_world::chunk_format::{Chunk, Heightmaps};
 use std::io::{Cursor, Write};
 use std::ops::Not;
-use tracing::warn;
+use tracing::{trace, warn};
 
 const SECTIONS: usize = 24; // Number of sections, adjust for your Y range (-64 to 319)
 
@@ -114,12 +114,19 @@ impl ChunkAndLightData {
                     Some(palette_entry) => {
                         palette_entry.write(&mut data)?;
                     }
-                    // If there is no palette entry, write a 0 (air) and log a warning
+                    // If there is no palette entry, write air
+                    // Logged as TRACE if debug environment, otherwise as WARN
                     None => {
                         VarInt::new(0).write(&mut data)?;
+                        #[cfg(debug_assertions)]
+                        trace!(
+                            "No palette entry for section at {}, {}",
+                            chunk.x, chunk.z
+                        );
+                        #[cfg(not(debug_assertions))]
                         warn!(
-                            "No palette entry found for section at {}, {}, {}",
-                            chunk.x, section.y, chunk.z
+                            "No palette entry for section at {}, {}",
+                            chunk.x, chunk.z
                         );
                     }
                 }
